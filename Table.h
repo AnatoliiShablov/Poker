@@ -1,12 +1,12 @@
 #ifndef POKER_TABLE_H
 #define POKER_TABLE_H
 
-#include "Deck.h"
 #include "Player.h"
+#include "Croupier.h"
 
 class Table {
     typedef int ID;
-    Deck deck{};
+    Croupier croupier;
     std::vector<std::pair<Player, ID>> players;
 public:
     size_t dealer{};
@@ -15,9 +15,10 @@ public:
 
     template<typename InputIterator>
     Table(InputIterator beginID, InputIterator endID, size_t start_balance, size_t small_blind) :
-            small_blind{small_blind}, players(endID - beginID) {
-        for (size_t i = 0; i < players.size(); ++i) {
-            players[i] = *(beginID + i);
+            small_blind{small_blind} {
+
+        for (auto it = beginID; it != endID; ++it) {
+            players.emplace_back(Player(start_balance), *it);
         }
         tournament();
     }
@@ -43,14 +44,12 @@ public:
     }
 
     void game() {
-        deck.shuffle();
+        croupier.shuffle();
         for (auto &player:players) {
-            player.first.retake(deck.next_card(), deck.next_card());
+            player.first.retake(croupier.next_card(), croupier.next_card());
         }
-        std::vector<bool> players_in_game(players.size(), true);
-        size_t players_left = players.size();
-        size_t pot = 0;
-        if (first_cirkle(pot, players_in_game, players_left)) {
+        std::vector<Pot> pots;
+        if (first_cirkle(pots)) {
             return;
         }
         table_cards[0] = deck.next_card();

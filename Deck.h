@@ -3,20 +3,21 @@
 
 #include "Card.h"
 #include <array>
-#include <random>
-#include <algorithm>
-#include <ctime>
 
-class Deck {
-    std::mt19937 engine;
+struct Deck {
     std::array<Card, 52> deck;
-    size_t pointer;
-public:
-    Deck();
 
-    void shuffle();
+    Deck() noexcept;
 
-    Card next_card();
+    Card operator[](size_t pos) const;
+
+    [[nodiscard]] std::array<Card, 52>::iterator begin();
+
+    [[nodiscard]] std::array<Card, 52>::const_iterator begin() const;
+
+    [[nodiscard]] std::array<Card, 52>::iterator end();
+
+    [[nodiscard]] std::array<Card, 52>::const_iterator end() const;
 };
 
 
