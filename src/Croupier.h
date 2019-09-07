@@ -1,10 +1,8 @@
 #ifndef POKER_CROUPIER_H
 #define POKER_CROUPIER_H
 
-
 #include <random>
-#include <algorithm>
-#include <ctime>
+
 #include "Deck.h"
 
 class Croupier {
@@ -15,7 +13,7 @@ class Croupier {
 public:
     Croupier();
 
-    Card next_card();
+    [[nodiscard]] Card next_card();
 
     void shuffle();
 };

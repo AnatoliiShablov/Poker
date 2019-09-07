@@ -1,6 +1,13 @@
 #include "Croupier.h"
 
-Croupier::Croupier() : deck{}, pointer{0}, engine{static_cast<std::mt19937::result_type>(std::time(nullptr))} {}
+#include <algorithm>
+#include <ctime>
+#include <stdexcept>
+
+Croupier::Croupier()
+  : deck{}
+  , pointer{0}
+  , engine{static_cast<std::mt19937::result_type>(std::time(nullptr))} {}
 
 Card Croupier::next_card() {
     if (pointer > 50) {

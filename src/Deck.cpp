@@ -77,3 +77,11 @@ std::array<Card, 52>::iterator Deck::end() {
 std::array<Card, 52>::const_iterator Deck::end() const {
     return deck.end();
 }
+
+Deck::const_iterator Deck::cbegin() const {
+    return deck.cbegin();
+}
+
+Deck::const_iterator Deck::cend() const {
+    return deck.cend();
+}

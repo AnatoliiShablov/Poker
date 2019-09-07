@@ -7,6 +7,7 @@ enum class Suit {
     hearts,
     spades
 };
+
 enum class Rank {
     two,
     three,
