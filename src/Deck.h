@@ -1,8 +1,8 @@
 #ifndef POKER_DECK_H
 #define POKER_DECK_H
 
-#include "Card.h"
 #include <array>
+#include "Card.h"
 
 struct Deck {
     using iterator = std::array<Card, 52>::iterator;
@@ -26,5 +26,4 @@ private:
     std::array<Card, 52> deck;
 };
 
-
-#endif //POKER_DECK_H
+#endif  // POKER_DECK_H

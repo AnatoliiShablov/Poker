@@ -8,6 +8,7 @@
 class Croupier {
     Deck deck;
     size_t pointer;
+    std::random_device dev;
     std::mt19937 engine;
 
 public:
@@ -18,5 +19,4 @@ public:
     void shuffle();
 };
 
-
-#endif //POKER_CROUPIER_H
+#endif  // POKER_CROUPIER_H
