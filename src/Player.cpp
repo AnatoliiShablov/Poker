@@ -1,5 +1,7 @@
 #include "Player.h"
 
+#include <stdexcept>
+
 Player::Player(size_t money) : balance{money}, infront{0} {}
 
 void Player::from_pot(size_t pot) {
@@ -23,7 +25,7 @@ void Player::to_pot(size_t amount) {
     balance -= amount;
 }
 
-std::pair<Card, Card> Player::show_cards() {
+Player::Hand Player::show_cards() {
     return hand_cards;
 }
 
