@@ -2,7 +2,6 @@
 #define POKER_CROUPIER_H
 
 #include <random>
-
 #include "Deck.h"
 
 class Croupier {
