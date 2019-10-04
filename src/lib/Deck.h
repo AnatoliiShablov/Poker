@@ -15,11 +15,13 @@ struct Deck {
     [[nodiscard]] iterator begin();
 
     [[nodiscard]] const_iterator begin() const;
+
     [[nodiscard]] const_iterator cbegin() const;
 
     [[nodiscard]] iterator end();
 
     [[nodiscard]] const_iterator end() const;
+
     [[nodiscard]] const_iterator cend() const;
 
 private:

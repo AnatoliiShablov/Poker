@@ -6,10 +6,8 @@
 #include "Card.h"
 
 class Player {
-    using Hand = std::pair<Card, Card>;
-    Hand hand_cards;
-
 public:
+    using Hand = std::pair<Card, Card>;
     size_t balance;
     size_t infront;
 
@@ -24,6 +22,9 @@ public:
     Hand show_cards();
 
     void retake(Card lhs, Card rhs);
+
+private:
+    Hand hand_cards;
 };
 
 #endif  // POKER_PLAYER_H
