@@ -1,17 +1,77 @@
 #ifndef POKER_CARD_H
 #define POKER_CARD_H
 
-enum class Suit { diamonds, clubs, hearts, spades };
+#include <type_traits>
+#include "SFML/Graphics.hpp"
+#include "SFML/Network.hpp"
 
-enum class Rank { two, three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace };
+struct Suit {
+    enum Enum : sf::Uint8 { diamonds, clubs, hearts, spades, NaS };
 
-int rank_uint(Rank const &rank);
+    Suit(Enum value = Enum::NaS) noexcept;
 
-int suit_uint(Suit const &suit);
+    friend bool operator==(Suit const &lhs, Suit const &rhs) noexcept;
+
+    friend bool operator!=(Suit const &lhs, Suit const &rhs) noexcept;
+
+    friend sf::Packet &operator<<(sf::Packet &packet, Suit const &suit);
+
+    friend sf::Packet &operator>>(sf::Packet &packet, Suit &suit);
+
+    explicit operator bool() = delete;
+
+    Enum &operator()() noexcept;
+
+    Enum operator()() const noexcept;
+
+    [[nodiscard]] sf::String to_string() const;
+
+private:
+    Enum value_;
+};
+
+struct Rank {
+    enum Enum : sf::Uint8 { two, three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace, NaR };
+
+    Rank() noexcept;
+
+    Rank(Enum value) noexcept;
+
+    friend bool operator==(Rank const &lhs, Rank const &rhs) noexcept;
+
+    friend bool operator!=(Rank const &lhs, Rank const &rhs) noexcept;
+
+    friend bool operator<(Rank const &lhs, Rank const &rhs) noexcept;
+
+    friend bool operator>(Rank const &lhs, Rank const &rhs) noexcept;
+
+    friend bool operator<=(Rank const &lhs, Rank const &rhs) noexcept;
+
+    friend bool operator>=(Rank const &lhs, Rank const &rhs) noexcept;
+
+    friend sf::Packet &operator<<(sf::Packet &packet, Rank const &rank);
+
+    friend sf::Packet &operator>>(sf::Packet &packet, Rank &rank);
+
+    explicit operator bool() = delete;
+
+    Enum &operator()() noexcept;
+
+    Enum operator()() const noexcept;
+
+    [[nodiscard]] sf::String to_string() const;
+
+    [[nodiscard]] sf::Uint8 to_uint8() const noexcept;
+
+private:
+    Enum value_;
+};
 
 struct Card {
     Suit suit;
     Rank rank;
+
+    sf::Sprite getSprite();
 };
 
 #endif  // POKER_CARD_H

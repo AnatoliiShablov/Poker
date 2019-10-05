@@ -8,10 +8,12 @@ find_package(SFML 2.5 COMPONENTS network graphics window system REQUIRED)
 add_library(PokerLib SHARED
         src/lib/Card.h
         src/lib/Card.cpp
-        src/lib/Croupier.h
-        src/lib/Croupier.cpp
+        src/lib/Signals.h
+        src/lib/Signals.cpp
         src/lib/Deck.h
         src/lib/Deck.cpp
+        src/lib/Croupier.h
+        src/lib/Croupier.cpp
         src/lib/Player.h
         src/lib/Player.cpp
         src/lib/Table.h

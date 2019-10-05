@@ -1,47 +1,141 @@
 #include "Card.h"
 
-int rank_uint(Rank const &rank) {
-    switch (rank) {
-    case Rank::two:
-        return 2;
-    case Rank::three:
-        return 3;
-    case Rank::four:
-        return 4;
-    case Rank::five:
-        return 5;
-    case Rank::six:
-        return 6;
-    case Rank::seven:
-        return 7;
-    case Rank::eight:
-        return 8;
-    case Rank::nine:
-        return 9;
-    case Rank::ten:
-        return 10;
-    case Rank::jack:
-        return 11;
-    case Rank::queen:
-        return 12;
-    case Rank::king:
-        return 13;
-    case Rank::ace:
-        return 14;
-    }
-    return 0;
+Suit::Suit(Suit::Enum value) noexcept : value_{value} {}
+
+bool operator==(Suit const &lhs, Suit const &rhs) noexcept {
+    return lhs.value_ == rhs.value_;
 }
 
-int suit_uint(Suit const &suit) {
-    switch (suit) {
-    case Suit::diamonds:
-        return 1;
-    case Suit::hearts:
-        return 2;
-    case Suit::clubs:
-        return 3;
-    case Suit::spades:
-        return 4;
+bool operator!=(Suit const &lhs, Suit const &rhs) noexcept {
+    return lhs.value_ != rhs.value_;
+}
+
+sf::Packet &operator<<(sf::Packet &packet, Suit const &suit) {
+    return packet << static_cast<sf::Uint8>(suit.value_);
+}
+
+sf::Packet &operator>>(sf::Packet &packet, Suit &suit) {
+    sf::Uint8 buf;
+    packet >> buf;
+    suit = static_cast<Suit::Enum>(buf);
+    return packet;
+}
+
+Suit::Enum &Suit::operator()() noexcept {
+    return value_;
+}
+
+Suit::Enum Suit::operator()() const noexcept {
+    return value_;
+}
+
+sf::String Suit::to_string() const {
+    switch (value_) {
+    case diamonds:
+        return "D";
+    case clubs:
+        return "C";
+    case hearts:
+        return "H";
+    case spades:
+        return "S";
+    case NaS:
+        return "N";
     }
-    return 0;
+}
+
+Rank::Rank() noexcept : value_{Enum::NaR} {}
+
+Rank::Rank(Rank::Enum value) noexcept : value_{value} {}
+
+bool operator==(Rank const &lhs, Rank const &rhs) noexcept {
+    return lhs.value_ == rhs.value_;
+}
+
+bool operator!=(Rank const &lhs, Rank const &rhs) noexcept {
+    return lhs.value_ != rhs.value_;
+}
+
+bool operator<(Rank const &lhs, Rank const &rhs) noexcept {
+    return static_cast<sf::Uint8>(lhs.value_) < static_cast<sf::Uint8>(rhs.value_);
+}
+
+bool operator>(Rank const &lhs, Rank const &rhs) noexcept {
+    return static_cast<sf::Uint8>(lhs.value_) > static_cast<sf::Uint8>(rhs.value_);
+}
+
+bool operator<=(Rank const &lhs, Rank const &rhs) noexcept {
+    return static_cast<sf::Uint8>(lhs.value_) <= static_cast<sf::Uint8>(rhs.value_);
+}
+
+bool operator>=(Rank const &lhs, Rank const &rhs) noexcept {
+    return static_cast<sf::Uint8>(lhs.value_) >= static_cast<sf::Uint8>(rhs.value_);
+}
+
+sf::Packet &operator<<(sf::Packet &packet, Rank const &rank) {
+    return packet << static_cast<sf::Uint8>(rank.value_);
+}
+
+sf::Packet &operator>>(sf::Packet &packet, Rank &rank) {
+    sf::Uint8 buf;
+    packet >> buf;
+    rank = static_cast<Rank::Enum>(buf);
+    return packet;
+}
+
+Rank::Enum &Rank::operator()() noexcept {
+    return value_;
+}
+
+Rank::Enum Rank::operator()() const noexcept {
+    return value_;
+}
+
+sf::String Rank::to_string() const {
+    switch (value_) {
+    case two:
+        return "2";
+    case three:
+        return "3";
+    case four:
+        return "4";
+    case five:
+        return "5";
+    case six:
+        return "6";
+    case seven:
+        return "7";
+    case eight:
+        return "8";
+    case nine:
+        return "9";
+    case ten:
+        return "T";
+    case jack:
+        return "J";
+    case queen:
+        return "Q";
+    case king:
+        return "K";
+    case ace:
+        return "A";
+    case NaR:
+        return "N";
+    }
+}
+
+sf::Uint8 Rank::to_uint8() const noexcept {
+    return static_cast<sf::Uint8>(value_);
+}
+
+sf::Sprite Card::getSprite() {
+    sf::Texture texture;
+    sf::String path;
+    if (suit == Suit::NaS || rank == Rank::NaR) {
+        path = "../data/cards/backside.png";
+    } else {
+        path = "../data/cards/" + suit.to_string() + rank.to_string() + ".png";
+    }
+    texture.loadFromFile(path);
+    return sf::Sprite{texture};
 }

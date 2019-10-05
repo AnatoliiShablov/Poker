@@ -14,5 +14,6 @@ int main() {
         }
     }
     Table table(players.begin(), players.end(), 1000, 1);
+    table.tournament();
     return 0;
 }

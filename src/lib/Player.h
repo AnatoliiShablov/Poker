@@ -4,22 +4,17 @@
 #include <cstddef>
 #include <utility>
 #include "Card.h"
+#include "SFML/System.hpp"
 
 class Player {
 public:
     using Hand = std::pair<Card, Card>;
-    size_t balance;
-    size_t infront;
+    sf::Uint64 balance;
+    sf::Uint64 infront;
 
-    explicit Player(size_t money);
+    explicit Player(sf::Uint64 money = 0);
 
-    void from_pot(size_t pot);
-
-    void add_to_infront(size_t amount);
-
-    void to_pot(size_t amount);
-
-    Hand show_cards();
+    [[nodiscard]] Hand show_cards() const;
 
     void retake(Card lhs, Card rhs);
 

@@ -2,239 +2,336 @@
 #define POKER_TABLE_H
 
 #include <algorithm>
+#include <utility>
 #include "Croupier.h"
 #include "Player.h"
 #include "SFML/Network.hpp"
 #include "SFML/System.hpp"
-
-enum class ActionType { call, raise, fold, check };
+#include "Signals.h"
 
 struct Action {
-    ActionType type;
-    size_t additional_info;
+    enum Enum : sf::Uint8 { call, raise, fold, check, NaA };
+    Enum type;
+    sf::Uint64 additional_info;
+
+    Action(Enum value = Enum::NaA) noexcept : type{value}, additional_info{0} {}
+
+    friend bool operator==(Action const &lhs, Action const &rhs) noexcept { return lhs.type == rhs.type; }
+
+    friend bool operator!=(Action const &lhs, Action const &rhs) noexcept { return lhs.type != rhs.type; }
+
+    friend sf::Packet &operator<<(sf::Packet &packet, Action const &action) {
+        if (action == Enum::raise) {
+            return packet << static_cast<sf::Uint8>(Enum::raise) << action.additional_info;
+        }
+        return packet << static_cast<sf::Uint8>(action.type);
+    }
+
+    friend sf::Packet &operator>>(sf::Packet &packet, Action &action) {
+        sf::Uint8 buf;
+        packet >> buf;
+        action = static_cast<Enum>(buf);
+        if (action == Enum::raise) {
+            return packet >> action.additional_info;
+        }
+        return packet;
+    }
+
+    explicit operator bool() = delete;
 };
 
 class Table {
     typedef std::add_pointer_t<sf::TcpSocket> ID;
 
     struct Pot {
-        std::vector<bool> players_for_pot;
-        size_t money{0};
+        std::vector<bool> variant;
+        sf::Uint64 money;
 
-        Pot(std::vector<bool> const &players, size_t money) : players_for_pot(players), money(money) {}
+        Pot(std::vector<bool> variant, sf::Uint64 money) : variant(std::move(variant)), money(money) {}
     };
 
     struct InGame {
-        std::vector<bool> players_in_game;
-        size_t amount;
+        std::vector<bool> alive;
+        sf::Uint8 amount;
 
-        InGame(size_t amount) : players_in_game(amount, true), amount(amount) {}
+        explicit InGame(sf::Uint8 amount) : alive(amount, true), amount{amount} {}
     };
 
     struct HCPower {
-        uint32_t power;
+        sf::Uint32 power;
 
-        HCPower(Player::Hand const &hc, std::array<Card, 5> const &tc) {
-            std::vector<Card> cards = {tc[0], tc[1], tc[2], tc[3], tc[4], hc.first, hc.second};
-            size_t tmp1, tmp2;
-            std::array<uint8_t, 13> checker;
+        explicit HCPower(std::array<Card, 7> const cards) noexcept : power{0} {
+            std::array<bool, 13> a_diamonds{};
+            std::array<bool, 13> a_clubs{};
+            std::array<bool, 13> a_hearts{};
+            std::array<bool, 13> a_spades{};
+            std::array<uint8_t, 13> a_no_suit{};
 
-            // check for straight flush
-            for (Suit suit : std::array<Suit, 4>{Suit::clubs, Suit::diamonds, Suit::hearts, Suit::spades}) {
-                checker.fill(0);
-                tmp1 = 0;
-                for (size_t i = 0; i < 7; ++i) {
-                    if (cards[i].suit == suit) {
-                        ++checker[rank_uint(cards[i].rank) - 2];
-                    }
+            for (Card card : cards) {
+                if (card.suit == Suit::diamonds) {
+                    a_diamonds[card.rank.to_uint8()] = true;
                 }
-                for (size_t i = 13; i--;) {
-                    if (checker[i]) {
-                        if (++tmp1 == 5) {
-                            power = 0xF0000000 | UINT32_C(1) << (18 + i);
-                            return;
-                        }
-                    } else {
-                        tmp1 = 0;
-                    }
+                if (card.suit == Suit::clubs) {
+                    a_clubs[card.rank.to_uint8()] = true;
                 }
-                if (tmp1 == 4 && checker[12]) {
-                    power = 0xF0000000 | UINT32_C(1) << 17u;
-                    return;
+                if (card.suit == Suit::hearts) {
+                    a_hearts[card.rank.to_uint8()] = true;
                 }
+                if (card.suit == Suit::spades) {
+                    a_spades[card.rank.to_uint8()] = true;
+                }
+                ++a_no_suit[card.rank.to_uint8()];
             }
+            sf::Uint32 result{0};
 
-            // check for four of a kind
-            checker.fill(0);
-            for (size_t i = 0; i < 7; ++i) {
-                ++checker[rank_uint(cards[i].rank) - 2];
+            if (result = flush_straight(a_diamonds); result) {
+                power = result;
+                return;
             }
-            tmp1 = 0;
-            tmp2 = 0;
-            for (size_t i = 13; i--;) {
-                if (checker[i] == 4) {
-                    power = 0xE0000000 | UINT32_C(1) << (14 + i);
-                    if (tmp2 == 1) {
-                        power |= UINT32_C(1) << tmp1;
-                        return;
-                    }
-                    tmp2 = 2;
-                }
-                if (tmp2 == 0 && checker[i]) {
-                    tmp1 = i;
-                    tmp2 = 1;
-                }
-                if (tmp2 == 2 && checker[i]) {
-                    power |= UINT32_C(1) << i;
-                    return;
-                }
+            if (result = flush_straight(a_clubs); result) {
+                power = result;
+                return;
             }
-
-            // check for full house
-            tmp1 = 15;
-            tmp2 = 15;
-            for (size_t i = 13; i--;) {
-                if (tmp1 == 15 && checker[i] == 3) {
-                    tmp1 = i;
-                    continue;
-                }
-                if (tmp2 == 15 && checker[i] >= 2) {
-                    tmp2 = i;
-                }
+            if (result = flush_straight(a_hearts); result) {
+                power = result;
+                return;
             }
-            if (tmp1 != 15 && tmp2 != 15) {
-                power = 0xD0000000 | UINT32_C(1) << (14 + tmp1) | UINT32_C(1) << (14 + tmp2);
+            if (result = flush_straight(a_spades); result) {
+                power = result;
                 return;
             }
 
-            // check for flush
-            for (Suit suit : std::array<Suit, 4>{Suit::clubs, Suit::diamonds, Suit::hearts, Suit::spades}) {
-                tmp1 = 0;
-                uint32_t mask = 0;
-                for (size_t i = 0; i < 7; ++i) {
-                    if (cards[i].suit == suit) {
-                        mask |= UINT32_C(1) << (12u + rank_uint(cards[i].rank));
-                        ++tmp1;
-                    }
-                }
-                if (tmp1 >= 5) {
-                    power = 0xC0000000 | mask;
-                    return;
-                }
+            if (result = four_of_a_kind(a_no_suit); result) {
+                power = result;
+                return;
             }
 
-            // check for straight
-            checker.fill(0);
-            for (size_t i = 0; i < 7; ++i) {
-                ++checker[rank_uint(cards[i].rank) - 2];
+            if (result = full_house(a_no_suit); result) {
+                power = result;
+                return;
             }
-            tmp1 = 0;
+
+            if (result = flush(a_diamonds); result) {
+                power = result;
+                return;
+            }
+            if (result = flush(a_clubs); result) {
+                power = result;
+                return;
+            }
+            if (result = flush(a_hearts); result) {
+                power = result;
+                return;
+            }
+            if (result = flush(a_spades); result) {
+                power = result;
+                return;
+            }
+
+            if (result = straight(a_no_suit); result) {
+                power = result;
+                return;
+            }
+
+            if (result = three_of_a_kind(a_no_suit); result) {
+                power = result;
+                return;
+            }
+
+            if (result = two_pairs(a_no_suit); result) {
+                power = result;
+                return;
+            }
+
+            if (result = pair(a_no_suit); result) {
+                power = result;
+                return;
+            }
+
+            if (result = high_card(a_no_suit); result) {
+                power = result;
+                return;
+            }
+        }
+
+        static sf::Uint32 flush_straight(std::array<bool, 13> const &mask) {
+            sf::Uint32 row{0};
             for (size_t i = 13; i--;) {
-                if (checker[i]) {
-                    if (++tmp1 == 5) {
-                        power = 0xB0000000 | UINT32_C(1) << (18 + i);
-                        return;
+                if (mask[i]) {
+                    if (++row == 5) {
+                        return 0xF0000000 | UINT32_C(1) << (18 + i);
                     }
                 } else {
-                    tmp1 = 0;
+                    row = 0;
                 }
             }
-            if (tmp1 == 4 && checker[12]) {
-                power = 0xB0000000 | UINT32_C(1) << 17u;
-                return;
+            if (row == 4 && mask[12]) {
+                return 0xF0000000 | UINT32_C(1) << 17u;
+            }
+            return 0;
+        }
+
+        static sf::Uint32 four_of_a_kind(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 four{15};
+            sf::Uint32 additional{15};
+            for (size_t i = 13; i--;) {
+                if (mask[i] == 4 && four == 15) {
+                    four = i;
+                    continue;
+                }
+                if (mask[i] && additional == 15) {
+                    additional = i;
+                }
             }
 
-            // check for three of a kind
-            tmp1 = 15;
-            tmp2 = 0;
-            size_t c1 = 0;
-            size_t c2 = 0;
-            for (size_t i = 13; i--;) {
-                if (tmp1 == 15 && checker[i] == 3) {
-                    tmp1 = i;
-                    if (tmp2 == 2) {
-                        break;
-                    }
-                    continue;
-                }
-                if (tmp2 == 1 && checker[i]) {
-                    c2 = i;
-                    tmp2 = 2;
-                }
-                if (tmp2 == 0 && checker[i]) {
-                    c1 = i;
-                    tmp2 = 1;
-                }
+            if (four != 15) {
+                return 0xE0000000 | UINT32_C(1) << (14 + four) | UINT32_C(1) << additional;
             }
-            if (tmp1 != 15) {
-                power = 0xA0000000 | UINT32_C(1) << (14 + tmp1) | UINT32_C(1) << c1 | UINT32_C(1) << c2;
-                return;
-            }
+            return 0;
+        }
 
-            // check for two pair
-            tmp1 = 0;
-            tmp2 = 0;
-            c1 = 15;
-            c2 = 15;
+        static sf::Uint32 full_house(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 three = 15;
+            sf::Uint32 pair = 15;
             for (size_t i = 13; i--;) {
-                if (c1 == 15 && checker[i] == 2) {
-                    c1 = i;
+                if (mask[i] == 3 && three == 15) {
+                    three = i;
                     continue;
                 }
-                if (c2 == 15 && checker[i] == 2) {
-                    c2 = i;
-                    continue;
-                }
-                if (tmp1 == 0 && checker[i]) {
-                    tmp1 = 1;
-                    tmp2 = i;
+                if (mask[i] >= 2 && pair == 15) {
+                    pair = i;
                 }
             }
-            if (c1 != 15 && c2 != 15) {
-                power = 0x90000000 | UINT32_C(1) << (14 + c1) | UINT32_C(1) << (14 + c2) | UINT32_C(1) << tmp2;
-                return;
+            if (three != 15 && pair != 15) {
+                return 0xD0000000 | UINT32_C(1) << (14 + three) | UINT32_C(1) << pair;
             }
+            return 0;
+        }
 
-            // check for one pair
-            tmp1 = 15;
-            tmp2 = 15;
-            c1 = 15;
-            c2 = 15;
+        static sf::Uint32 flush(std::array<bool, 13> const &mask) {
+            sf::Uint32 amount{0};
+            sf::Uint32 result{0xC0000000};
             for (size_t i = 13; i--;) {
-                if (tmp1 == 15 && checker[i] == 2) {
-                    tmp1 = i;
-                    continue;
-                }
-                if (c2 == 15 && checker[i]) {
-                    c2 = i;
-                    continue;
-                }
-                if (c1 == 15 && checker[i]) {
-                    c1 = i;
-                    continue;
-                }
-                if (tmp2 == 15 && checker[i]) {
-                    tmp2 = i;
-                    continue;
-                }
-            }
-            if (tmp1 != 15) {
-                power = 0x80000000 | UINT32_C(1) << (14 + tmp1) | UINT32_C(1) << (c1) | UINT32_C(1) << (c2) |
-                        UINT32_C(1) << tmp2;
-                return;
-            }
-
-            // check for high card
-            tmp1 = 0;
-            power = 0x70000000;
-            for (size_t i = 13; i--;) {
-                if (checker[i]) {
-                    power |= UINT32_C(1) << (14 + i);
-                    if (++tmp1 == 5) {
-                        break;
+                if (mask[i]) {
+                    result |= UINT32_C(1) << (14 + i);
+                    if (++amount == 5) {
+                        return result;
                     }
                 }
             }
+            return 0;
+        }
+
+        static sf::Uint32 straight(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 row{0};
+            for (size_t i = 13; i--;) {
+                if (mask[i]) {
+                    if (++row == 5) {
+                        return 0xB0000000 | UINT32_C(1) << (18 + i);
+                    }
+                } else {
+                    row = 0;
+                }
+            }
+            if (row == 4 && mask[12]) {
+                return 0xB0000000 | UINT32_C(1) << 17u;
+            }
+            return 0;
+        }
+
+        static sf::Uint32 three_of_a_kind(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 three{15};
+            sf::Uint32 additional1{15}, additional2{15};
+            for (size_t i = 13; i--;) {
+                if (mask[i] == 3 && three == 15) {
+                    three = i;
+                    continue;
+                }
+                if (mask[i]) {
+                    if (additional1 == 15) {
+                        additional1 = i;
+                        continue;
+                    }
+                    if (additional2 == 15) {
+                        additional2 = i;
+                    }
+                }
+            }
+            if (three != 15) {
+                return 0xA0000000 | UINT32_C(1) << (14 + three) | UINT32_C(1) << additional1 |
+                       UINT32_C(1) << additional2;
+            }
+            return 0;
+        }
+
+        static sf::Uint32 two_pairs(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 pair1{15}, pair2{15};
+            sf::Uint32 additional{15};
+            for (size_t i = 13; i--;) {
+                if (mask[i] == 2) {
+                    if (pair1 == 15) {
+                        pair1 = i;
+                        continue;
+                    }
+                    if (pair2 == 15) {
+                        pair2 = i;
+                        continue;
+                    }
+                }
+                if (mask[i] && additional == 15) {
+                    additional = i;
+                }
+            }
+            if (pair1 != 15 && pair2 != 15) {
+                return 0x90000000 | UINT32_C(1) << (14 + pair1) | UINT32_C(1) << (14 + pair2) |
+                       UINT32_C(1) << additional;
+            }
+            return 0;
+        }
+
+        static sf::Uint32 pair(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 pair{15};
+            sf::Uint32 additional1{15}, additional2{15}, additional3{15};
+            for (size_t i = 13; i--;) {
+                if (mask[i] == 2 && pair == 15) {
+                    pair = i;
+                    continue;
+                }
+                if (mask[i]) {
+                    if (additional1 == 15) {
+                        additional1 = i;
+                        continue;
+                    }
+
+                    if (additional2 == 15) {
+                        additional2 = i;
+                        continue;
+                    }
+
+                    if (additional3 == 15) {
+                        additional3 = i;
+                    }
+                }
+            }
+            if (pair != 15) {
+                return 0x80000000 | UINT32_C(1) << (14 + pair) | UINT32_C(1) << additional1 |
+                       UINT32_C(1) << additional2 | UINT32_C(1) << additional3;
+            }
+            return 0;
+        }
+
+        static sf::Uint32 high_card(std::array<uint8_t, 13> const &mask) {
+            sf::Uint32 amount{0};
+            sf::Uint32 result{0x70000000};
+            for (size_t i = 13; i--;) {
+                if (mask[i]) {
+                    result |= UINT32_C(1) << (14 + i);
+                    if (++amount == 5) {
+                        return result;
+                    }
+                }
+            }
+            return 0;
         }
     };
 
@@ -242,66 +339,36 @@ class Table {
     std::vector<std::pair<Player, ID>> players;
 
 public:
-    size_t dealer{};
-    size_t small_blind;
-    std::array<Card, 5> table_cards;
+    sf::Uint8 dealer{};
+    sf::Uint64 small_blind;
+    std::array<Card, 5> table_cards{};
 
     template <typename InputIterator>
-    Table(InputIterator beginID, InputIterator endID, size_t start_balance, size_t small_blind)
+    Table(InputIterator beginID, InputIterator endID, sf::Uint64 start_balance, sf::Uint64 small_blind)
         : small_blind{small_blind} {
         for (auto it = beginID; it != endID; ++it) {
             players.emplace_back(Player(start_balance), *it);
         }
-        tournament();
     }
 
     void tournament() {
         while (players.size() > 1) {
+            //  pregame_sync();
             game();
-            bool flag = false;
             for (size_t i = 0; i < players.size(); ++i) {
                 if (players[i].first.balance == 0) {
-                    goodbye(players[i].second);
+                    //      goodbye(players[i].second);
                     players.erase(players.begin() + i);
                     if (i <= dealer) {
-                        flag = true;
+                        if (dealer) {
+                            --dealer;
+                        } else {
+                            dealer = players.size() - 1;
+                        }
                     }
                 }
             }
-            if (flag) {
-                ++dealer;
-            }
-            dealer %= players.size();
-            sync_after_game();
-        }
-    }
-
-    void give_to_winner(std::vector<Pot> const &pots) {
-        std::vector<HCPower> powers;
-        for (size_t i = 0; i < players.size(); ++i) {
-            powers.emplace_back(players[i].first.show_cards(), table_cards);
-        }
-        for (Pot const &pot : pots) {
-            std::vector<size_t> winners;
-            winners.push_back(std::find(pot.players_for_pot.begin(), pot.players_for_pot.end(), true) -
-                              pot.players_for_pot.begin());
-            for (size_t i = winners.front() + 1; i < players.size(); ++i) {
-                if (!pot.players_for_pot[i]) {
-                    continue;
-                }
-                if (powers[i].power == powers[winners.front()].power) {
-                    winners.push_back(i);
-                } else if (powers[i].power > powers[winners.front()].power) {
-                    winners.resize(1, i);
-                }
-            }
-            std::vector<bool> send(players.size(), false);
-            for (size_t i : winners) {
-                send[i] = true;
-            }
-            for (size_t i = 0; i < players.size(); ++i) {
-                send_money(players[i].second, (send[i] ? (pot.money / winners.size()) : 0));
-            }
+            dealer = (dealer + 1) % players.size();
         }
     }
 
@@ -312,24 +379,20 @@ public:
         }
         std::vector<Pot> pots;
         InGame in_game(players.size());
-        sync_in_game(pots, in_game, 0);
         if (cirkle(pots, in_game, 0)) {
             return;
         }
         table_cards[0] = croupier.next_card();
         table_cards[1] = croupier.next_card();
         table_cards[2] = croupier.next_card();
-        sync_in_game(pots, in_game, 3);
         if (cirkle(pots, in_game, 3)) {
             return;
         }
         table_cards[3] = croupier.next_card();
-        sync_in_game(pots, in_game, 4);
         if (cirkle(pots, in_game, 4)) {
             return;
         }
         table_cards[4] = croupier.next_card();
-        sync_in_game(pots, in_game, 5);
         if (cirkle(pots, in_game, 5)) {
             return;
         }
@@ -337,70 +400,81 @@ public:
     }
 
     bool cirkle(std::vector<Pot> &pots, InGame &in_game, size_t tc_amount) {
-        size_t player_now = dealer;
-        size_t max = 0;
+        sf::Uint8 player_now = dealer;
+        sf::Uint64 max = 0;
         if (tc_amount == 0) {
-            in_game.players_in_game.resize(players.size(), true);
-            in_game.amount = players.size();
             player_now = (player_now + 1) % players.size();
-            players[player_now].first.add_to_infront(std::min(small_blind, players[player_now].first.balance));
+            if (players[player_now].first.balance <= small_blind) {
+                players[player_now].first.infront = players[player_now].first.balance;
+                players[player_now].first.balance = 0;
+            } else {
+                players[player_now].first.infront = small_blind;
+                players[player_now].first.balance -= small_blind;
+            }
             player_now = (player_now + 1) % players.size();
-            players[player_now].first.add_to_infront(std::min(small_blind * 2, players[player_now].first.balance));
+            if (players[player_now].first.balance <= small_blind * 2) {
+                players[player_now].first.infront = players[player_now].first.balance;
+                players[player_now].first.balance = 0;
+            } else {
+                players[player_now].first.infront = small_blind * 2;
+                players[player_now].first.balance -= small_blind * 2;
+            }
             max = small_blind * 2;
         }
-        size_t last_bet = player_now;
+        sf::Uint8 done = 0;
         player_now = (player_now + 1) % players.size();
-        sync_in_game(pots, in_game, tc_amount);
-        while (player_now != last_bet) {
-            if (players[player_now].first.balance > 0 && in_game.players_in_game[player_now]) {
-                Action action = get_action(players[player_now].second, max);
-                if (action.type == ActionType::call) {
-                    players[player_now].first.add_to_infront(std::min(max, players[player_now].first.balance));
+        while (done != in_game.amount) {
+            if (players[player_now].first.balance > 0 && in_game.alive[player_now]) {
+                Action action;  // = get_action(players[player_now].second, max);
+                if (action == Action::call) {
+                    if (players[player_now].first.balance + players[player_now].first.infront <= max) {
+                        players[player_now].first.infront += players[player_now].first.balance;
+                        players[player_now].first.balance = 0;
+                    } else {
+                        players[player_now].first.balance -= max - players[player_now].first.infront;
+                        players[player_now].first.infront = max;
+                    }
                 }
-                /*if (action.type == ActionType::check) {
-                   Do nothing
-                }*/
 
-                if (action.type == ActionType::fold) {
-                    in_game.players_in_game[player_now] = false;
+                if (action == Action::fold) {
+                    in_game.alive[player_now] = false;
                     --in_game.amount;
                     if (in_game.amount == 1) {
                         break;
                     }
                 }
 
-                if (action.type == ActionType::raise) {
-                    players[player_now].first.add_to_infront(
-                        std::min(action.additional_info, players[player_now].first.balance));
-                    last_bet = player_now;
+                if (action == Action::raise) {
+                    max = action.additional_info;
+                    players[player_now].first.balance -= max - players[player_now].first.infront;
+                    players[player_now].first.infront = max;
+                    done = 0;
                 }
             }
-            sync_in_game(pots, in_game, tc_amount);
+            if (in_game.alive[player_now]) {
+                ++done;
+            }
             player_now = (player_now + 1) % players.size();
         }
 
         if (in_game.amount == 1) {
-            size_t pos = std::find(in_game.players_in_game.begin(), in_game.players_in_game.end(), true) -
-                         in_game.players_in_game.begin();
-            for (size_t i = 0; i < players.size(); ++i) {
-                if (i == pos) {
-                    continue;
-                }
-                players[pos].first.from_pot(players[i].first.infront);
-                players[i].first.to_pot(players[i].first.infront);
+            sf::Uint8 winner = std::find(in_game.alive.begin(), in_game.alive.end(), true) - in_game.alive.begin();
+            for (auto &player : players) {
+                players[winner].first.balance += player.first.infront;
+                player.first.infront = 0;
             }
             for (auto &pot : pots) {
-                players[pos].first.from_pot(pot.money);
+                players[winner].first.balance += pot.money;
             }
             return true;
         }
 
-        while (std::any_of(players.begin(), players.end(), [](auto &player) { return player.first.balance > 0; })) {
+        while (std::any_of(players.begin(), players.end(), [](auto &player) { return player.first.infront > 0; })) {
             std::vector<bool> players_for_pot(players.size(), false);
-            size_t money = 0;
-            size_t min_infront = SIZE_MAX;
+            sf::Uint64 money = 0;
+            sf::Uint64 min_infront = 0;
             std::for_each(players.begin(), players.end(), [&min_infront](auto &player) {
-                if (player.first.infront < min_infront && player.first.infront > 0) {
+                if (min_infront == 0 || (0 < player.first.infront && player.first.infront < min_infront)) {
                     min_infront = player.first.infront;
                 }
             });
@@ -408,8 +482,8 @@ public:
             for (size_t i = 0; i < players.size(); ++i) {
                 if (players[i].first.infront > 0) {
                     money += min_infront;
-                    players[i].first.to_pot(min_infront);
-                    if (in_game.players_in_game[i]) {
+                    players[i].first.infront -= min_infront;
+                    if (in_game.alive[i]) {
                         players_for_pot[i] = true;
                     }
                 }
@@ -419,82 +493,30 @@ public:
         return false;
     }
 
-    void sync_after_game() {
+    void give_to_winner(std::vector<Pot> const &pots) {
+        std::vector<HCPower> powers;
         for (auto &player : players) {
-            send_start_preinfo(player.second);
-            for (auto &another_player : players) {
-                send_players_info(player.second, another_player.second, another_player.first.balance);
+            powers.emplace_back(std::array<Card, 7>{player.first.show_cards().first, player.first.show_cards().second,
+                                                    table_cards[0], table_cards[1], table_cards[2], table_cards[3],
+                                                    table_cards[4]});
+        }
+        for (Pot const &pot : pots) {
+            std::vector<size_t> winners;
+            winners.push_back(std::find(pot.variant.begin(), pot.variant.end(), true) - pot.variant.begin());
+            for (size_t i = winners.front() + 1; i < players.size(); ++i) {
+                if (!pot.variant[i]) {
+                    continue;
+                }
+                if (powers[i].power == powers[winners.front()].power) {
+                    winners.push_back(i);
+                } else if (powers[i].power > powers[winners.front()].power) {
+                    winners.resize(1, i);
+                }
+            }
+            for (auto winner : winners) {
+                players[winner].first.balance += pot.money / winners.size();
             }
         }
-    }
-
-    void sync_in_game(std::vector<Pot> const &pots, InGame const &in_game, size_t tc_amount) {
-        for (auto &player : players) {
-            send_deck_info(player.second, tc_amount);
-            for (auto &another_player : players) {
-                send_players_info(player.second, another_player.second, another_player.first.balance,
-                                  another_player.first.infront);
-            }
-        }
-    }
-
-    static Action get_action(ID player, size_t max) {
-        sf::Packet package;
-        package << sf::String("Action") << sf::Uint64(max);
-        player->send(package);
-        package.clear();
-        player->receive(package);
-        sf::String ans;
-        sf::Uint64 add;
-        package >> ans;
-        if (ans == "Call") {
-            return Action{ActionType::call, 0};
-        }
-        if (ans == "Check") {
-            return Action{ActionType::check, 0};
-        }
-        if (ans == "Fold") {
-            return Action{ActionType::fold, 0};
-        }
-        if (ans == "Raise") {
-            package >> add;
-            return Action{ActionType::raise, add};
-        }
-    }
-
-    void send_start_preinfo(ID player) {
-        sf::Packet package;
-        package << sf::String("New Game") << sf::Uint64(players.size()) << sf::Uint64(dealer);
-        player->send(package);
-    }
-
-    void send_deck_info(ID player, size_t tc_amount) {
-        sf::Packet package;
-        package << sf::String("Table Cards") << sf::Uint64(tc_amount);
-        for (size_t i = 0; i < tc_amount; ++i) {
-            package << sf::Uint64(suit_uint(table_cards[i].suit)) << sf::Uint64(rank_uint(table_cards[i].rank));
-        }
-        player->send(package);
-    }
-
-    static void send_players_info(ID player, ID another_player, size_t balance, size_t in_front = 0) {
-        sf::Packet package;
-        package << sf::String("Player Info") << sf::String(another_player->getRemoteAddress().toString())
-                << another_player->getRemotePort() << sf::Uint64(balance) << sf::Uint64(in_front);
-        player->send(package);
-    }
-
-    static void send_money(ID player, size_t money) {
-        sf::Packet package;
-        package << sf::String("Give Money") << sf::Uint64(money);
-        player->send(package);
-    }
-
-    static void goodbye(ID player) {
-        sf::Packet package;
-        package << sf::String("Goodbye");
-        player->send(package);
-        player->disconnect();
     }
 };
 
