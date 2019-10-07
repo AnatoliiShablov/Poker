@@ -9,37 +9,6 @@
 #include "SFML/System.hpp"
 #include "Signals.h"
 
-struct Action {
-    enum Enum : sf::Uint8 { call, raise, fold, check, NaA };
-    Enum type;
-    sf::Uint64 additional_info;
-
-    Action(Enum value = Enum::NaA) noexcept : type{value}, additional_info{0} {}
-
-    friend bool operator==(Action const &lhs, Action const &rhs) noexcept { return lhs.type == rhs.type; }
-
-    friend bool operator!=(Action const &lhs, Action const &rhs) noexcept { return lhs.type != rhs.type; }
-
-    friend sf::Packet &operator<<(sf::Packet &packet, Action const &action) {
-        if (action == Enum::raise) {
-            return packet << static_cast<sf::Uint8>(Enum::raise) << action.additional_info;
-        }
-        return packet << static_cast<sf::Uint8>(action.type);
-    }
-
-    friend sf::Packet &operator>>(sf::Packet &packet, Action &action) {
-        sf::Uint8 buf;
-        packet >> buf;
-        action = static_cast<Enum>(buf);
-        if (action == Enum::raise) {
-            return packet >> action.additional_info;
-        }
-        return packet;
-    }
-
-    explicit operator bool() = delete;
-};
-
 class Table {
     typedef std::add_pointer_t<sf::TcpSocket> ID;
 
@@ -343,9 +312,9 @@ public:
     sf::Uint64 small_blind;
     std::array<Card, 5> table_cards{};
 
-    template <typename InputIterator>
+    template<typename InputIterator>
     Table(InputIterator beginID, InputIterator endID, sf::Uint64 start_balance, sf::Uint64 small_blind)
-        : small_blind{small_blind} {
+            : small_blind{small_blind} {
         for (auto it = beginID; it != endID; ++it) {
             players.emplace_back(Player(start_balance), *it);
         }
@@ -353,11 +322,10 @@ public:
 
     void tournament() {
         while (players.size() > 1) {
-            //  pregame_sync();
             game();
             for (size_t i = 0; i < players.size(); ++i) {
                 if (players[i].first.balance == 0) {
-                    //      goodbye(players[i].second);
+                    send_info_to_looser(players[i].second);
                     players.erase(players.begin() + i);
                     if (i <= dealer) {
                         if (dealer) {
@@ -370,13 +338,15 @@ public:
             }
             dealer = (dealer + 1) % players.size();
         }
+        send_info_to_winner(players.front().second);
     }
 
     void game() {
         croupier.shuffle();
         for (auto &player : players) {
-            player.first.retake(croupier.next_card(), croupier.next_card());
+            player.first.retake(Player::Hand{croupier.next_card(), croupier.next_card()});
         }
+        send_new_game_info();
         std::vector<Pot> pots;
         InGame in_game(players.size());
         if (cirkle(pots, in_game, 0)) {
@@ -385,17 +355,21 @@ public:
         table_cards[0] = croupier.next_card();
         table_cards[1] = croupier.next_card();
         table_cards[2] = croupier.next_card();
+        send_table_cards(3);
         if (cirkle(pots, in_game, 3)) {
             return;
         }
         table_cards[3] = croupier.next_card();
+        send_table_cards(4);
         if (cirkle(pots, in_game, 4)) {
             return;
         }
         table_cards[4] = croupier.next_card();
+        send_table_cards(5);
         if (cirkle(pots, in_game, 5)) {
             return;
         }
+        show_cards(in_game);
         give_to_winner(pots);
     }
 
@@ -425,7 +399,9 @@ public:
         player_now = (player_now + 1) % players.size();
         while (done != in_game.amount) {
             if (players[player_now].first.balance > 0 && in_game.alive[player_now]) {
-                Action action;  // = get_action(players[player_now].second, max);
+                send_new_balances();
+                send_active_player(player_now);
+                Action action = get_action(player_now, max);
                 if (action == Action::call) {
                     if (players[player_now].first.balance + players[player_now].first.infront <= max) {
                         players[player_now].first.infront += players[player_now].first.balance;
@@ -459,6 +435,7 @@ public:
 
         if (in_game.amount == 1) {
             sf::Uint8 winner = std::find(in_game.alive.begin(), in_game.alive.end(), true) - in_game.alive.begin();
+            send_winners(std::vector<sf::Uint8>(1, winner));
             for (auto &player : players) {
                 players[winner].first.balance += player.first.infront;
                 player.first.infront = 0;
@@ -490,18 +467,19 @@ public:
             }
             pots.emplace_back(players_for_pot, money);
         }
+        send_pot_changes(pots);
         return false;
     }
 
     void give_to_winner(std::vector<Pot> const &pots) {
         std::vector<HCPower> powers;
         for (auto &player : players) {
-            powers.emplace_back(std::array<Card, 7>{player.first.show_cards().first, player.first.show_cards().second,
+            powers.emplace_back(std::array<Card, 7>{player.first.show_cards().lhs, player.first.show_cards().rhs,
                                                     table_cards[0], table_cards[1], table_cards[2], table_cards[3],
                                                     table_cards[4]});
         }
         for (Pot const &pot : pots) {
-            std::vector<size_t> winners;
+            std::vector<sf::Uint8> winners;
             winners.push_back(std::find(pot.variant.begin(), pot.variant.end(), true) - pot.variant.begin());
             for (size_t i = winners.front() + 1; i < players.size(); ++i) {
                 if (!pot.variant[i]) {
@@ -513,9 +491,125 @@ public:
                     winners.resize(1, i);
                 }
             }
+            send_winners(winners);
             for (auto winner : winners) {
                 players[winner].first.balance += pot.money / winners.size();
             }
+        }
+    }
+
+    static void send_info_to_looser(ID player) {
+        sf::Packet package;
+        package << Signal(Signal::Lost);
+        player->send(package);
+    }
+
+    static void send_info_to_winner(ID player) {
+        sf::Packet package;
+        package << Signal(Signal::Win);
+        player->send(package);
+    }
+
+    void send_new_game_info() {
+        for (size_t i = 0; i < players.size(); ++i) {
+            sf::Packet package;
+            package << Signal(Signal::NewGameInfo);
+            package << sf::Uint8(players.size()) << dealer;
+            for (size_t j = 0; j < players.size(); ++j) {
+                if (i == j) {
+                    package << sf::String("Me");
+                } else {
+                    package << sf::String(std::to_string(players[j].second->getLocalPort()));
+                }
+                package << players[j].first.balance;
+            }
+            package << players[i].first.show_cards();
+            players[i].second->send(package);
+        }
+    }
+
+    void send_table_cards(sf::Uint8 tc_amount) {
+        sf::Packet package;
+        package << Signal(Signal::ChangeTableCards);
+        package << tc_amount;
+        for (sf::Uint8 i = 0; i < tc_amount; ++i) {
+            package << table_cards[i];
+        }
+        for (auto &player : players) {
+            player.second->send(package);
+        }
+    }
+
+    void show_cards(InGame const &in_game) {
+        for (size_t i = 0; i < players.size(); ++i) {
+            sf::Packet package;
+            package << Signal(Signal::ShowCards);
+            for (size_t j = 0; j < players.size(); ++j) {
+                if (in_game.alive[j] || i == j) {
+                    package << players[j].first.show_cards();
+                } else {
+                    package << Player::Hand{};
+                }
+            }
+            players[i].second->send(package);
+        }
+    }
+
+    void send_new_balances() {
+        sf::Packet package;
+        package << Signal(Signal::ChangeBalances);
+        for (auto &player:players) {
+            package << player.first.balance << player.first.infront;
+        }
+        for (auto &player : players) {
+            player.second->send(package);
+        }
+    }
+
+    void send_active_player(sf::Uint8 active) {
+        sf::Packet package;
+        package << Signal(Signal::ChangeActivePlayer) << active;
+        for (auto &player : players) {
+            player.second->send(package);
+        }
+    }
+
+    Action get_action(sf::Uint8 player, sf::Uint64 max) {
+        sf::Packet package;
+        if (max == players[player].first.infront) {
+            package << Signal(Signal::WaitForActionCheckRaise);
+        } else if (max >= players[player].first.balance + players[player].first.infront) {
+            package << Signal(Signal::WaitForActionCallFold);
+        } else {
+            package << Signal(Signal::WaitForActionCallRaiseFold);
+        }
+        players[player].second->send(package);
+        sf::Packet input_package;
+        players[player].second->receive(input_package);
+        Action res;
+        input_package >> res;
+        return res;
+    }
+
+    void send_winners(std::vector<sf::Uint8> const &winners) {
+        sf::Packet package;
+        package << Signal(Signal::ShowWinners) << sf::Uint8(winners.size());
+        for (sf::Uint8 winner : winners) {
+            package << winner;
+        }
+        for (auto &player : players) {
+            player.second->send(package);
+        }
+    }
+
+    void send_pot_changes(std::vector<Pot> const &pots) {
+        sf::Packet package;
+        package << Signal(Signal::ChangePot) << sf::Uint8(pots.size());
+        for (auto &pot : pots) {
+            package << pot.money;
+        }
+        for (auto &player : players) {
+            player.second->send(package);
         }
     }
 };

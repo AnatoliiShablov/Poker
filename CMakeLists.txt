@@ -4,6 +4,7 @@ project(Poker)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(SFML 2.5 COMPONENTS network graphics window system REQUIRED)
+find_package(Threads REQUIRED)
 
 add_library(PokerLib SHARED
         src/lib/Card.h
@@ -25,4 +26,4 @@ target_link_libraries(GameServer PokerLib sfml-system sfml-window sfml-graphics 
 
 add_executable(GameClient src/client.cpp)
 target_include_directories(GameClient PUBLIC ${SFML_INCLUDE_DIR})
-target_link_libraries(GameClient PokerLib sfml-system sfml-window sfml-graphics sfml-network)
+target_link_libraries(GameClient PokerLib sfml-system sfml-window sfml-graphics sfml-network ${CMAKE_THREAD_LIBS_INIT})

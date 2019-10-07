@@ -1,12 +1,12 @@
 #include "Signals.h"
 
-constexpr Signal::Signal(Signal::Enum value) noexcept : value_{value} {}
+Signal::Signal(Signal::Enum value) noexcept : value_{value} {}
 
-constexpr bool operator==(Signal const &lhs, Signal const &rhs) noexcept {
+bool operator==(Signal const &lhs, Signal const &rhs) noexcept {
     return lhs.value_ == rhs.value_;
 }
 
-constexpr bool operator!=(Signal const &lhs, Signal const &rhs) noexcept {
+bool operator!=(Signal const &lhs, Signal const &rhs) noexcept {
     return lhs.value_ != rhs.value_;
 }
 
@@ -21,10 +21,10 @@ sf::Packet &operator>>(sf::Packet &packet, Signal &signal) {
     return packet;
 }
 
-constexpr Signal::Enum &Signal::operator()() noexcept {
+Signal::Enum &Signal::operator()() noexcept {
     return value_;
 }
 
-constexpr Signal::Enum Signal::operator()() const noexcept {
+Signal::Enum Signal::operator()() const noexcept {
     return value_;
 }

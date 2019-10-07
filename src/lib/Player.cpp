@@ -8,6 +8,15 @@ Player::Hand Player::show_cards() const {
     return hand_cards;
 }
 
-void Player::retake(Card lhs, Card rhs) {
-    hand_cards = std::make_pair(lhs, rhs);
+void Player::retake(Player::Hand hand) noexcept {
+    hand_cards = hand;
+}
+
+sf::Packet &operator<<(sf::Packet &packet, const Player::Hand &hand) {
+    return packet << hand.lhs << hand.rhs;
+}
+
+sf::Packet &operator>>(sf::Packet &packet, Player::Hand &hand) {
+    return packet >> hand.lhs >> hand.rhs;
+
 }

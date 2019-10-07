@@ -6,7 +6,9 @@
 #include "SFML/Network.hpp"
 
 struct Suit {
-    enum Enum : sf::Uint8 { diamonds, clubs, hearts, spades, NaS };
+    enum Enum : sf::Uint8 {
+        diamonds, clubs, hearts, spades, NaS
+    };
 
     Suit(Enum value = Enum::NaS) noexcept;
 
@@ -31,11 +33,11 @@ private:
 };
 
 struct Rank {
-    enum Enum : sf::Uint8 { two, three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace, NaR };
+    enum Enum : sf::Uint8 {
+        two, three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace, NaR
+    };
 
-    Rank() noexcept;
-
-    Rank(Enum value) noexcept;
+    Rank(Enum value = Enum::NaR) noexcept;
 
     friend bool operator==(Rank const &lhs, Rank const &rhs) noexcept;
 
@@ -70,6 +72,14 @@ private:
 struct Card {
     Suit suit;
     Rank rank;
+
+    friend bool operator==(Card const &lhs, Card const &rhs) noexcept;
+
+    friend bool operator!=(Card const &lhs, Card const &rhs) noexcept;
+
+    friend sf::Packet &operator<<(sf::Packet &packet, Card const &card);
+
+    friend sf::Packet &operator>>(sf::Packet &packet, Card &card);
 
     sf::Sprite getSprite();
 };

@@ -8,7 +8,15 @@
 
 class Player {
 public:
-    using Hand = std::pair<Card, Card>;
+    struct Hand {
+        Card lhs;
+        Card rhs;
+
+        friend sf::Packet &operator<<(sf::Packet &packet, Hand const &hand);
+
+        friend sf::Packet &operator>>(sf::Packet &packet, Hand &hand);
+    };
+
     sf::Uint64 balance;
     sf::Uint64 infront;
 
@@ -16,7 +24,7 @@ public:
 
     [[nodiscard]] Hand show_cards() const;
 
-    void retake(Card lhs, Card rhs);
+    void retake(Hand hand) noexcept;
 
 private:
     Hand hand_cards;
