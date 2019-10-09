@@ -8,15 +8,15 @@ struct Signal {
         WaitForActionCheckRaise,
         WaitForActionCallRaiseFold,
         WaitForActionCallFold,
-        NewGameInfo,//++
-        Win,//++
-        Lost,//++
-        ChangeTableCards,//++
-        ChangeActivePlayer,//+
-        ChangeBalances,//++
-        ChangePot,//+
-        ShowCards,//+
-        ShowWinners,//+
+        NewGameInfo,         //++
+        Win,                 //++
+        Lost,                //++
+        ChangeTableCards,    //++
+        ChangeActivePlayer,  //+
+        ChangeBalances,      //++
+        ChangePot,           //+
+        ShowCards,           //+
+        ShowWinners,         //+
         NaI
     };
 
@@ -41,9 +41,7 @@ private:
 };
 
 struct Action {
-    enum Enum : sf::Uint8 {
-        call, raise, fold, check, NaA
-    };
+    enum Enum : sf::Uint8 { call, raise, fold, check, NaA };
     Enum type;
     sf::Uint64 additional_info;
 

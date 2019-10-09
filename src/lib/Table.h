@@ -312,9 +312,9 @@ public:
     sf::Uint64 small_blind;
     std::array<Card, 5> table_cards{};
 
-    template<typename InputIterator>
+    template <typename InputIterator>
     Table(InputIterator beginID, InputIterator endID, sf::Uint64 start_balance, sf::Uint64 small_blind)
-            : small_blind{small_blind} {
+        : small_blind{small_blind} {
         for (auto it = beginID; it != endID; ++it) {
             players.emplace_back(Player(start_balance), *it);
         }
@@ -399,7 +399,7 @@ public:
         player_now = (player_now + 1) % players.size();
         while (done != in_game.amount) {
             if (players[player_now].first.balance > 0 && in_game.alive[player_now]) {
-                send_new_balances();
+                send_new_balances_and_activity(in_game);
                 send_active_player(player_now);
                 Action action = get_action(player_now, max);
                 if (action == Action::call) {
@@ -465,7 +465,11 @@ public:
                     }
                 }
             }
-            pots.emplace_back(players_for_pot, money);
+            if (!pots.empty() && pots.back().variant == players_for_pot) {
+                pots.back().money += money;
+            } else {
+                pots.emplace_back(players_for_pot, money);
+            }
         }
         send_pot_changes(pots);
         return false;
@@ -555,11 +559,14 @@ public:
         }
     }
 
-    void send_new_balances() {
+    void send_new_balances_and_activity(InGame const &in_game) {
         sf::Packet package;
         package << Signal(Signal::ChangeBalances);
-        for (auto &player:players) {
+        for (auto &player : players) {
             package << player.first.balance << player.first.infront;
+        }
+        for (bool b : in_game.alive) {
+            package << b;
         }
         for (auto &player : players) {
             player.second->send(package);

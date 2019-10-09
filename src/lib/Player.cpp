@@ -18,5 +18,4 @@ sf::Packet &operator<<(sf::Packet &packet, const Player::Hand &hand) {
 
 sf::Packet &operator>>(sf::Packet &packet, Player::Hand &hand) {
     return packet >> hand.lhs >> hand.rhs;
-
 }

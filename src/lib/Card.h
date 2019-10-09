@@ -6,9 +6,7 @@
 #include "SFML/Network.hpp"
 
 struct Suit {
-    enum Enum : sf::Uint8 {
-        diamonds, clubs, hearts, spades, NaS
-    };
+    enum Enum : sf::Uint8 { diamonds, clubs, hearts, spades, NaS };
 
     Suit(Enum value = Enum::NaS) noexcept;
 
@@ -33,9 +31,7 @@ private:
 };
 
 struct Rank {
-    enum Enum : sf::Uint8 {
-        two, three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace, NaR
-    };
+    enum Enum : sf::Uint8 { two, three, four, five, six, seven, eight, nine, ten, jack, queen, king, ace, NaR };
 
     Rank(Enum value = Enum::NaR) noexcept;
 

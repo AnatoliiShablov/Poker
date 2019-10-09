@@ -31,16 +31,16 @@ Suit::Enum Suit::operator()() const noexcept {
 
 sf::String Suit::to_string() const {
     switch (value_) {
-        case diamonds:
-            return "D";
-        case clubs:
-            return "C";
-        case hearts:
-            return "H";
-        case spades:
-            return "S";
-        case NaS:
-            return "N";
+    case diamonds:
+        return "D";
+    case clubs:
+        return "C";
+    case hearts:
+        return "H";
+    case spades:
+        return "S";
+    case NaS:
+        return "N";
     }
     return "";
 }
@@ -92,34 +92,34 @@ Rank::Enum Rank::operator()() const noexcept {
 
 sf::String Rank::to_string() const {
     switch (value_) {
-        case two:
-            return "2";
-        case three:
-            return "3";
-        case four:
-            return "4";
-        case five:
-            return "5";
-        case six:
-            return "6";
-        case seven:
-            return "7";
-        case eight:
-            return "8";
-        case nine:
-            return "9";
-        case ten:
-            return "T";
-        case jack:
-            return "J";
-        case queen:
-            return "Q";
-        case king:
-            return "K";
-        case ace:
-            return "A";
-        case NaR:
-            return "N";
+    case two:
+        return "2";
+    case three:
+        return "3";
+    case four:
+        return "4";
+    case five:
+        return "5";
+    case six:
+        return "6";
+    case seven:
+        return "7";
+    case eight:
+        return "8";
+    case nine:
+        return "9";
+    case ten:
+        return "T";
+    case jack:
+        return "J";
+    case queen:
+        return "Q";
+    case king:
+        return "K";
+    case ace:
+        return "A";
+    case NaR:
+        return "N";
     }
     return "";
 }
@@ -137,7 +137,10 @@ sf::Sprite Card::getSprite() {
         path = "../data/cards/" + suit.to_string() + rank.to_string() + ".png";
     }
     texture.loadFromFile(path);
-    return sf::Sprite{texture};
+    sf::Sprite result;
+    result.setTexture(texture, true);
+    result.setOrigin(result.getGlobalBounds().width / 2.0f, result.getGlobalBounds().height / 2.0f);
+    return result;
 }
 
 bool operator==(Card const &lhs, Card const &rhs) noexcept {
