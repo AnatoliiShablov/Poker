@@ -128,21 +128,6 @@ sf::Uint8 Rank::to_uint8() const noexcept {
     return static_cast<sf::Uint8>(value_);
 }
 
-sf::Sprite Card::getSprite() {
-    sf::Texture texture;
-    sf::String path;
-    if (suit == Suit::NaS || rank == Rank::NaR) {
-        path = "../data/cards/backside.png";
-    } else {
-        path = "../data/cards/" + suit.to_string() + rank.to_string() + ".png";
-    }
-    texture.loadFromFile(path);
-    sf::Sprite result;
-    result.setTexture(texture, true);
-    result.setOrigin(result.getGlobalBounds().width / 2.0f, result.getGlobalBounds().height / 2.0f);
-    return result;
-}
-
 bool operator==(Card const &lhs, Card const &rhs) noexcept {
     return (lhs.suit == rhs.suit) && (lhs.rank == rhs.rank);
 }
@@ -157,4 +142,8 @@ sf::Packet &operator<<(sf::Packet &packet, Card const &card) {
 
 sf::Packet &operator>>(sf::Packet &packet, Card &card) {
     return packet >> card.suit >> card.rank;
+}
+
+sf::String Card::to_string() {
+    return suit.to_string() + rank.to_string();
 }

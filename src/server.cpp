@@ -11,6 +11,7 @@ int main() {
         auto *client = new sf::TcpSocket;
         if (listener.accept(*client) == sf::Socket::Done) {
             players.push_back(client);
+            players.back()->setBlocking(false);
         }
     }
     Table table(players.begin(), players.end(), 1000, 1);

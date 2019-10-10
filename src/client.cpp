@@ -10,7 +10,9 @@
 #include "lib/Player.h"
 #include "lib/Signals.h"
 
-enum class Anchor { top_left, top_right, bottom_left, bottom_right, center };
+enum class Anchor {
+    top_left, top_right, bottom_left, bottom_right, center
+};
 
 class Button {
     sf::Texture button_texture_normal;
@@ -25,7 +27,7 @@ class Button {
 
 public:
     Button(sf::String const &name, sf::Vector2f pos, Anchor anchor = Anchor::top_left)
-        : pos{pos}, anchor{anchor}, is_pressed{false} {
+            : pos{pos}, anchor{anchor}, is_pressed{false} {
         button_texture_normal.loadFromFile(name + "_normal.png");
         button_sprite_normal.setTexture(button_texture_normal, true);
         button_sprite_normal.setOrigin({button_sprite_normal.getGlobalBounds().width / 2.0f,
@@ -54,31 +56,31 @@ public:
 
     void operator()(sf::RenderWindow &window) {
         switch (anchor) {
-        case Anchor::top_left: {
-            button_sprite_normal.setPosition(pos);
-            button_sprite_pressed.setPosition(pos);
-            break;
-        }
-        case Anchor::top_right: {
-            button_sprite_normal.setPosition(window.getSize().x + pos.x, pos.y);
-            button_sprite_pressed.setPosition(window.getSize().x + pos.x, pos.y);
-            break;
-        }
-        case Anchor::bottom_left: {
-            button_sprite_normal.setPosition(pos.x, window.getSize().y + pos.y);
-            button_sprite_pressed.setPosition(pos.x, window.getSize().y + pos.y);
-            break;
-        }
-        case Anchor::bottom_right: {
-            button_sprite_normal.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y);
-            button_sprite_pressed.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y);
-            break;
-        }
-        case Anchor::center: {
-            button_sprite_normal.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y);
-            button_sprite_pressed.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y);
-            break;
-        }
+            case Anchor::top_left: {
+                button_sprite_normal.setPosition(pos);
+                button_sprite_pressed.setPosition(pos);
+                break;
+            }
+            case Anchor::top_right: {
+                button_sprite_normal.setPosition(window.getSize().x + pos.x, pos.y);
+                button_sprite_pressed.setPosition(window.getSize().x + pos.x, pos.y);
+                break;
+            }
+            case Anchor::bottom_left: {
+                button_sprite_normal.setPosition(pos.x, window.getSize().y + pos.y);
+                button_sprite_pressed.setPosition(pos.x, window.getSize().y + pos.y);
+                break;
+            }
+            case Anchor::bottom_right: {
+                button_sprite_normal.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y);
+                button_sprite_pressed.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y);
+                break;
+            }
+            case Anchor::center: {
+                button_sprite_normal.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y);
+                button_sprite_pressed.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y);
+                break;
+            }
         }
         window.draw(is_pressed ? button_sprite_pressed : button_sprite_normal);
     }
@@ -113,11 +115,12 @@ public:
     }
 
     BarNumerated(sf::String const &name, sf::Vector2f pos, Anchor anchor = Anchor::top_left)
-        : pos{pos}, anchor{anchor} {
+            : pos{pos}, anchor{anchor} {
         point_texture_normal.loadFromFile(name + "_normal.png");
         point_sprite_normal.setTexture(point_texture_normal, true);
         point_sprite_normal.setOrigin(
-            {point_sprite_normal.getGlobalBounds().width / 2.0f, point_sprite_normal.getGlobalBounds().height / 2.0f});
+                {point_sprite_normal.getGlobalBounds().width / 2.0f,
+                 point_sprite_normal.getGlobalBounds().height / 2.0f});
 
         point_texture_pressed.loadFromFile(name + "_pressed.png");
         point_sprite_pressed.setTexture(point_texture_pressed, true);
@@ -170,31 +173,31 @@ public:
 
     void operator()(sf::RenderWindow &window) {
         switch (anchor) {
-        case Anchor::top_left: {
-            bar_sprite.setPosition(pos);
-            number.setPosition(pos.x, pos.y - 50.0f);
-            break;
-        }
-        case Anchor::top_right: {
-            bar_sprite.setPosition(window.getSize().x + pos.x, pos.y);
-            number.setPosition(window.getSize().x + pos.x, pos.y - 50.0f);
-            break;
-        }
-        case Anchor::bottom_left: {
-            bar_sprite.setPosition(pos.y, window.getSize().y + pos.y);
-            number.setPosition(pos.x, window.getSize().y + pos.y - 50.0f);
-            break;
-        }
-        case Anchor::bottom_right: {
-            bar_sprite.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y);
-            number.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y - 50.0f);
-            break;
-        }
-        case Anchor::center: {
-            bar_sprite.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y);
-            number.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y - 50.0f);
-            break;
-        }
+            case Anchor::top_left: {
+                bar_sprite.setPosition(pos);
+                number.setPosition(pos.x, pos.y - 50.0f);
+                break;
+            }
+            case Anchor::top_right: {
+                bar_sprite.setPosition(window.getSize().x + pos.x, pos.y);
+                number.setPosition(window.getSize().x + pos.x, pos.y - 50.0f);
+                break;
+            }
+            case Anchor::bottom_left: {
+                bar_sprite.setPosition(pos.y, window.getSize().y + pos.y);
+                number.setPosition(pos.x, window.getSize().y + pos.y - 50.0f);
+                break;
+            }
+            case Anchor::bottom_right: {
+                bar_sprite.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y);
+                number.setPosition(window.getSize().x + pos.x, window.getSize().y + pos.y - 50.0f);
+                break;
+            }
+            case Anchor::center: {
+                bar_sprite.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y);
+                number.setPosition(window.getSize().x / 2.0f + pos.x, window.getSize().y / 2.0f + pos.y - 50.0f);
+                break;
+            }
         }
         float left = bar_sprite.getGlobalBounds().left + 30.0f;
         float right = left + bar_sprite.getGlobalBounds().width - 60.0f;
@@ -242,6 +245,7 @@ struct TableInfo {
         package >> hand;
         players[main_player].data.retake(hand);
         table_cards.clear();
+        pots.clear();
     }
 
     void refresh_table_cards(sf::Packet &package) {
@@ -310,13 +314,12 @@ struct RenderTable {
     BarNumerated bar;
 
     RenderTable(sf::Uint32 width, sf::Uint32 height)
-        : table{}
-        , window{sf::VideoMode{width, height}, "Client"}
-        , call_button("../data/buttons/call_button", {-370.0f, -40.0f}, Anchor::bottom_right)
-        , check_button("../data/buttons/check_button", {-370.0f, -40.0f}, Anchor::bottom_right)
-        , raise_button("../data/buttons/raise_button", {-215.0f, -40.0f}, Anchor::bottom_right)
-        , fold_button("../data/buttons/fold_button", {-70.0f, -40.0f}, Anchor::bottom_right)
-        , bar("../data/buttons/bar", {-220.0f, -90.0f}, Anchor::bottom_right) {
+            : table{}, window{sf::VideoMode{width, height}, "Client"},
+              call_button("../data/buttons/call_button", {-370.0f, -40.0f}, Anchor::bottom_right),
+              check_button("../data/buttons/check_button", {-370.0f, -40.0f}, Anchor::bottom_right),
+              raise_button("../data/buttons/raise_button", {-215.0f, -40.0f}, Anchor::bottom_right),
+              fold_button("../data/buttons/fold_button", {-70.0f, -40.0f}, Anchor::bottom_right),
+              bar("../data/buttons/bar", {-220.0f, -90.0f}, Anchor::bottom_right) {
         text_font.loadFromFile("../data/fonts/main.ttf");
         background_texture.loadFromFile("../data/backgrounds/asphalt.png");
         background.setTexture(background_texture, true);
@@ -327,26 +330,26 @@ struct RenderTable {
         window.draw(background);
         std::lock_guard<std::mutex> lock(table.refresh_data);
         switch (table.last_signal()) {
-        case Signal::WaitForActionCheckRaise:
-            draw_cr();
-            break;
-        case Signal::WaitForActionCallRaiseFold:
-            draw_crf();
-            break;
-        case Signal::WaitForActionCallFold:
-            draw_cf();
-            break;
-        case Signal::Win:
-        case Signal::Lost:
-            draw_finish_state();
-            break;
-        case Signal::ShowWinners:
-
-            break;
-        case Signal::ShowCards:
-        default:
-            simple_redraw();
-            break;
+            case Signal::WaitForActionCheckRaise:
+                draw_cr();
+                break;
+            case Signal::WaitForActionCallRaiseFold:
+                draw_crf();
+                break;
+            case Signal::WaitForActionCallFold:
+                draw_cf();
+                break;
+            case Signal::Win:
+            case Signal::Lost:
+                draw_finish_state();
+                break;
+            case Signal::ShowWinners:
+                simple_redraw(true);
+                break;
+            case Signal::ShowCards:
+            default:
+                simple_redraw();
+                break;
         }
         window.display();
     }
@@ -364,7 +367,7 @@ struct RenderTable {
         window.draw(output);
     }
 
-    void simple_redraw() {
+    void simple_redraw(bool winners_state = false) {
         sf::Vector2f win_max = static_cast<sf::Vector2f>(window.getSize());
         sf::Vector2f ellipse_max((win_max.x - 100.0f) / 2.0f, (win_max.y - 300.0f) / 2.0f);
         sf::Vector2f ellipse_center(win_max.x / 2.0f, win_max.y / 2.0f);
@@ -379,10 +382,14 @@ struct RenderTable {
                                 player_dealer.getGlobalBounds().height / 2.0f);
 
         float diff = 2.0f * std::acos(-1.0f) / static_cast<float>(table.players.size());
-        float fi = std::asin(1.0f) - diff * static_cast<float>(table.main_player);
+        float fi = -std::asin(1.0f) + diff * static_cast<float>(table.main_player);
         for (size_t i = 0; i < table.players.size(); i++) {
             sf::Text player_name(table.players[i].name, text_font, 30);
-            player_name.setFillColor(table.players[i].in_game ? sf::Color::Black : sf::Color{100, 100, 100});
+            if (winners_state) {
+                player_name.setFillColor(table.players[i].is_winner ? sf::Color::Yellow : sf::Color{100, 100, 100});
+            } else {
+                player_name.setFillColor(table.players[i].in_game ? sf::Color::Black : sf::Color{100, 100, 100});
+            }
             player_name.setOutlineThickness(0.1f);
             player_name.setOutlineColor(sf::Color::White);
             player_name.setOrigin(player_name.getGlobalBounds().width / 2.0f,
@@ -406,9 +413,21 @@ struct RenderTable {
             player_infront.setOrigin(player_infront.getGlobalBounds().width / 2.0f,
                                      player_infront.getGlobalBounds().height / 2.0f);
 
-            sf::Sprite player_lc{table.players[i].data.show_cards().lhs.getSprite()};
+            sf::Texture lc_texture;
+            lc_texture.loadFromFile("../data/cards/" + table.players[i].data.show_cards().lhs.to_string() + ".png");
+            sf::Texture rc_texture;
+            rc_texture.loadFromFile("../data/cards/" + table.players[i].data.show_cards().rhs.to_string() + ".png");
+            sf::Sprite player_lc;
+            player_lc.setTexture(lc_texture, true);
+            player_lc.setOrigin(player_lc.getGlobalBounds().width / 2.0f,
+                                player_lc.getGlobalBounds().height / 2.0f);
+            player_lc.setScale(0.12f, 0.12f);
 
-            sf::Sprite player_rc{table.players[i].data.show_cards().rhs.getSprite()};
+            sf::Sprite player_rc;
+            player_rc.setTexture(rc_texture, true);
+            player_rc.setOrigin(player_rc.getGlobalBounds().width / 2.0f,
+                                player_rc.getGlobalBounds().height / 2.0f);
+            player_rc.setScale(0.12f, 0.12f);
 
             player_name.setPosition(ellipse_center.x + r * std::cos(fi), ellipse_center.y + r * std::sin(fi) - 70.0f);
             player_balance.setPosition(ellipse_center.x + r * std::cos(fi),
@@ -416,10 +435,10 @@ struct RenderTable {
             player_infront.setPosition(ellipse_center.x + r * std::cos(fi),
                                        ellipse_center.y + r * std::sin(fi) - 10.0f);
 
-            player_lc.setPosition(ellipse_center.x + r * std::cos(fi) - 30.0f,
-                                  ellipse_center.y + r * std::sin(fi) + 50.0f);
+            player_lc.setPosition(ellipse_center.x + r * std::cos(fi) - 20.0f,
+                                  ellipse_center.y + r * std::sin(fi) + 75.0f);
             player_rc.setPosition(ellipse_center.x + r * std::cos(fi) + 30.0f,
-                                  ellipse_center.y + r * std::sin(fi) + 50.0f);
+                                  ellipse_center.y + r * std::sin(fi) + 75.0f);
 
             if (i == table.active_player) {
                 player_active.setPosition(ellipse_center.x + r * std::cos(fi) - 20.0f,
@@ -439,21 +458,29 @@ struct RenderTable {
         window.draw(player_active);
         window.draw(player_dealer);
 
-        float plus = 60.0f;
+        float plus = 100.0f;
         float start_pos_x = ellipse_center.x - 2.0f * plus;
         for (auto card : table.table_cards) {
-            sf::Sprite card_sprite = card.getSprite();
-            card_sprite.setPosition(start_pos_x, ellipse_center.y - 30.0f);
+            sf::Texture card_texture;
+            card_texture.loadFromFile("../data/cards/" + card.to_string() + ".png");
+            sf::Sprite card_sprite;
+            card_sprite.setTexture(card_texture, true);
+            card_sprite.setOrigin(card_sprite.getGlobalBounds().width / 2.0f,
+                                  card_sprite.getGlobalBounds().height / 2.0f);
+
+            card_sprite.setScale(0.12f, 0.12f);
+
+            card_sprite.setPosition(start_pos_x, ellipse_center.y);
             window.draw(card_sprite);
             start_pos_x += plus;
         }
         plus = 60.0f;
-        start_pos_x = ellipse_center.x - (static_cast<float>(table.pots.size()) / 2.0f) * plus;
+        start_pos_x = ellipse_center.x - (static_cast<float>(table.pots.size() - 1) / 2.0f) * plus;
         for (auto pot : table.pots) {
             sf::Text pot_sprite(std::to_string(pot), text_font, 20);
             pot_sprite.setFillColor(sf::Color::Cyan);
             pot_sprite.setOrigin(pot_sprite.getGlobalBounds().width / 2.0f, pot_sprite.getGlobalBounds().height / 2.0f);
-            pot_sprite.setPosition(start_pos_x, ellipse_center.y + 30.0f);
+            pot_sprite.setPosition(start_pos_x, ellipse_center.y + 70.0f);
             window.draw(pot_sprite);
             start_pos_x += plus;
         }
@@ -520,57 +547,57 @@ void package_reader(sf::TcpSocket *server_socket, TableInfo &table, MTQueue &que
         if (server_socket->receive(package) == sf::Socket::Status::Done) {
             package >> signal;
             switch (signal()) {
-            case Signal::WaitForActionCheckRaise:
-            case Signal::WaitForActionCallRaiseFold:
-            case Signal::WaitForActionCallFold: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.last_signal = signal;
-                table.reseted = false;
-                break;
-            }
-            case Signal::Win:
-            case Signal::Lost: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.last_signal = signal;
-                break;
-            }
-            case Signal::NewGameInfo: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.new_game(package);
-                break;
-            }
-            case Signal::ChangeTableCards: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.refresh_table_cards(package);
-                break;
-            }
-            case Signal::ChangeActivePlayer: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.refresh_active_player(package);
-                break;
-            }
-            case Signal::ChangeBalances: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.refresh_balances_and_activity(package);
-                break;
-            }
-            case Signal::ChangePot: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.refresh_pots(package);
-                break;
-            }
-            case Signal::ShowCards: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.showing_cards(package);
-                break;
-            }
-            case Signal::ShowWinners: {
-                std::lock_guard<std::mutex> lock(table.refresh_data);
-                table.showing_winners(package);
-                break;
-            }
-            case Signal::NaI:
-                break;
+                case Signal::WaitForActionCheckRaise:
+                case Signal::WaitForActionCallRaiseFold:
+                case Signal::WaitForActionCallFold: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.last_signal = signal;
+                    table.reseted = false;
+                    break;
+                }
+                case Signal::Win:
+                case Signal::Lost: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.last_signal = signal;
+                    break;
+                }
+                case Signal::NewGameInfo: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.new_game(package);
+                    break;
+                }
+                case Signal::ChangeTableCards: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.refresh_table_cards(package);
+                    break;
+                }
+                case Signal::ChangeActivePlayer: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.refresh_active_player(package);
+                    break;
+                }
+                case Signal::ChangeBalances: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.refresh_balances_and_activity(package);
+                    break;
+                }
+                case Signal::ChangePot: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.refresh_pots(package);
+                    break;
+                }
+                case Signal::ShowCards: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.showing_cards(package);
+                    break;
+                }
+                case Signal::ShowWinners: {
+                    std::lock_guard<std::mutex> lock(table.refresh_data);
+                    table.showing_winners(package);
+                    break;
+                }
+                case Signal::NaI:
+                    break;
             }
         }
         package.clear();
@@ -602,8 +629,16 @@ int main(int argc, char *argv[]) {
                 render_table.window.close();
             }
             if (event.type == sf::Event::Resized) {
+                sf::Vector2u win_size = render_table.window.getSize();
+                if (win_size.x < 1280 && win_size.y < 720) {
+                    render_table.window.setSize({1280, 720});
+                } else if (win_size.y < 720) {
+                    render_table.window.setSize({win_size.x, 720});
+                } else if (win_size.x < 1280) {
+                    render_table.window.setSize({1280, win_size.y});
+                }
                 render_table.window.setView(sf::View(
-                    sf::FloatRect(0.0f, 0.0f, render_table.window.getSize().x, render_table.window.getSize().y)));
+                        sf::FloatRect(0.0f, 0.0f, render_table.window.getSize().x, render_table.window.getSize().y)));
             }
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left) {
                 sf::Vector2f mouse_pos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(render_table.window));
@@ -697,6 +732,7 @@ int main(int argc, char *argv[]) {
             }
         }
         render_table.draw();
+        sf::sleep(sf::milliseconds(20));
     }
     {
         std::lock_guard<std::mutex> lock_q(queue());

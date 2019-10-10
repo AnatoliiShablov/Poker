@@ -312,9 +312,9 @@ public:
     sf::Uint64 small_blind;
     std::array<Card, 5> table_cards{};
 
-    template <typename InputIterator>
+    template<typename InputIterator>
     Table(InputIterator beginID, InputIterator endID, sf::Uint64 start_balance, sf::Uint64 small_blind)
-        : small_blind{small_blind} {
+            : small_blind{small_blind} {
         for (auto it = beginID; it != endID; ++it) {
             players.emplace_back(Player(start_balance), *it);
         }
@@ -324,7 +324,7 @@ public:
         while (players.size() > 1) {
             game();
             for (size_t i = 0; i < players.size(); ++i) {
-                if (players[i].first.balance == 0) {
+                if (players[i].first.balance == 0 || players[i].second->getRemoteAddress() == sf::IpAddress::None) {
                     send_info_to_looser(players[i].second);
                     players.erase(players.begin() + i);
                     if (i <= dealer) {
@@ -443,6 +443,7 @@ public:
             for (auto &pot : pots) {
                 players[winner].first.balance += pot.money;
             }
+            sf::sleep(sf::seconds(5));
             return true;
         }
 
@@ -499,19 +500,20 @@ public:
             for (auto winner : winners) {
                 players[winner].first.balance += pot.money / winners.size();
             }
+            sf::sleep(sf::seconds(5));
         }
     }
 
     static void send_info_to_looser(ID player) {
         sf::Packet package;
         package << Signal(Signal::Lost);
-        player->send(package);
+        send_package(player, package);
     }
 
     static void send_info_to_winner(ID player) {
         sf::Packet package;
         package << Signal(Signal::Win);
-        player->send(package);
+        send_package(player, package);
     }
 
     void send_new_game_info() {
@@ -528,7 +530,7 @@ public:
                 package << players[j].first.balance;
             }
             package << players[i].first.show_cards();
-            players[i].second->send(package);
+            send_package(players[i].second, package);
         }
     }
 
@@ -540,7 +542,7 @@ public:
             package << table_cards[i];
         }
         for (auto &player : players) {
-            player.second->send(package);
+            send_package(player.second, package);
         }
     }
 
@@ -555,7 +557,7 @@ public:
                     package << Player::Hand{};
                 }
             }
-            players[i].second->send(package);
+            send_package(players[i].second, package);
         }
     }
 
@@ -569,7 +571,7 @@ public:
             package << b;
         }
         for (auto &player : players) {
-            player.second->send(package);
+            send_package(player.second, package);
         }
     }
 
@@ -577,7 +579,7 @@ public:
         sf::Packet package;
         package << Signal(Signal::ChangeActivePlayer) << active;
         for (auto &player : players) {
-            player.second->send(package);
+            send_package(player.second, package);
         }
     }
 
@@ -590,9 +592,19 @@ public:
         } else {
             package << Signal(Signal::WaitForActionCallRaiseFold);
         }
-        players[player].second->send(package);
+        send_package(players[player].second, package);
         sf::Packet input_package;
-        players[player].second->receive(input_package);
+        while (true) {
+            sf::Socket::Status status = players[player].second->receive(input_package);
+            if (status == sf::Socket::Done) {
+                break;
+            }
+            if (status == sf::Socket::Disconnected || status == sf::Socket::Error) {
+                input_package.clear();
+                input_package << Action(Action::fold);
+                break;
+            }
+        }
         Action res;
         input_package >> res;
         return res;
@@ -617,6 +629,15 @@ public:
         }
         for (auto &player : players) {
             player.second->send(package);
+        }
+    }
+
+    static void send_package(ID player, sf::Packet package) {
+        while (true) {
+            sf::Socket::Status status = player->send(package);
+            if (status == sf::Socket::Done || status == sf::Socket::Disconnected || sf::Socket::Error) {
+                break;
+            }
         }
     }
 };
